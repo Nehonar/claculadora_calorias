@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Calculadora Nutricional</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0f0f0f;
+    color: #e8e8e8;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  h1 {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+
+  .layout {
+    max-width: 860px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* LEFT: ingredient picker */
+  .picker { display: flex; flex-direction: column; gap: 20px; }
+
+  .grupo {
+    background: #161616;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .grupo-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 12px;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag {
+    background: #1e1e1e;
+    border: 1px solid #2e2e2e;
+    color: #bbb;
+    font-size: 13px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .tag:hover {
+    border-color: #555;
+    color: #eee;
+    background: #252525;
+  }
+
+  .tag.active {
+    background: #e8f5e9;
+    border-color: #4caf50;
+    color: #1b5e20;
+    font-weight: 600;
+  }
+
+  /* RIGHT: list + total */
+  .panel { display: flex; flex-direction: column; gap: 16px; }
+
+  .panel-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #555;
+  }
+
+  .item-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .item-row {
+    background: #161616;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .item-name {
+    flex: 1;
+    font-size: 13px;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-grams {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .item-grams input {
+    width: 58px;
+    background: #1e1e1e;
+    border: 1px solid #2e2e2e;
+    color: #eee;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-align: right;
+    outline: none;
+  }
+
+  .item-grams input:focus {
+    border-color: #4caf50;
+  }
+
+  .item-grams span {
+    font-size: 11px;
+    color: #555;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .item-kcal {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: #8bc34a;
+    min-width: 56px;
+    text-align: right;
+  }
+
+  .item-del {
+    background: none;
+    border: none;
+    color: #444;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.15s;
+  }
+  .item-del:hover { color: #e57373; }
+
+  .empty-msg {
+    font-size: 12px;
+    color: #444;
+    text-align: center;
+    padding: 20px 0;
+    font-style: italic;
+  }
+
+  .total-box {
+    background: #161616;
+    border: 1px solid #2e2e2e;
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .total-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #555;
+  }
+
+  .total-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 26px;
+    font-weight: 500;
+    color: #eee;
+    transition: color 0.3s;
+  }
+
+  .total-value.green { color: #66bb6a; }
+  .total-value.red   { color: #ef5350; }
+
+  .total-sub {
+    font-size: 11px;
+    color: #555;
+    margin-top: 2px;
+  }
+
+  @media (max-width: 640px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Calculadora de Calorías</h1>
+
+<div class="layout">
+
+  <!-- LEFT: ingredient picker -->
+  <div class="picker" id="picker"></div>
+
+  <!-- RIGHT: selected list -->
+  <div class="panel">
+    <div class="panel-title">Seleccionados</div>
+    <div class="item-list" id="itemList">
+      <div class="empty-msg" id="emptyMsg">Selecciona ingredientes →</div>
+    </div>
+    <div class="total-box">
+      <div>
+        <div class="total-label">Total</div>
+        <div class="total-sub" id="totalSub">0 ingredientes</div>
+      </div>
+      <div class="total-value" id="totalVal">0 kcal</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const alimentos = {
+  "Carbohidratos": {
+    "Arroz blanco":130, "Arroz integral":110, "Quinoa":120,
+    "Patata":80, "Boniato":90, "Avena":370
+  },
+  "Verduras": {
+    "Verduras":30
+  },
+  "Legumbres": {
+    "Lentejas":115, "Garbanzos":160, "Alubias blancas":130, "Alubias rojas":130
+  },
+  "Proteínas": {
+    "Pechuga pollo":165, "Tofu":145, "Huevo entero":155,
+    "Clara de huevo":50, "Yogur griego":65, "Yogur natural":60
+  },
+  "Grasas": {
+    "Aceite de oliva":900, "Aguacate":160, "Frutos secos":600
+  },
+  "Fruta": {
+    "Plátano":90, "Manzana":52, "Frutos rojos":50
+  }
+};
+
+const selected = {}; // name -> { kcal100, row, input, kcalCell }
+
+// Build picker
+const picker = document.getElementById("picker");
+
+for (const [grupo, items] of Object.entries(alimentos)) {
+  const box = document.createElement("div");
+  box.className = "grupo";
+  box.innerHTML = `<div class="grupo-label">${grupo}</div><div class="tags" id="tags-${grupo}"></div>`;
+  picker.appendChild(box);
+
+  const tagsDiv = box.querySelector(".tags");
+  for (const [nombre, kcal100] of Object.entries(items)) {
+    const tag = document.createElement("div");
+    tag.className = "tag";
+    tag.textContent = nombre;
+    tag.dataset.name = nombre;
+    tag.dataset.kcal = kcal100;
+    tag.addEventListener("click", () => toggleIngrediente(nombre, kcal100, tag));
+    tagsDiv.appendChild(tag);
+  }
+}
+
+function toggleIngrediente(nombre, kcal100, tag) {
+  if (selected[nombre]) {
+    // remove
+    selected[nombre].row.remove();
+    delete selected[nombre];
+    tag.classList.remove("active");
+  } else {
+    // add
+    tag.classList.add("active");
+    addRow(nombre, kcal100, tag);
+  }
+  recalcTotal();
+}
+
+function addRow(nombre, kcal100, tag) {
+  document.getElementById("emptyMsg")?.remove();
+
+  const row = document.createElement("div");
+  row.className = "item-row";
+
+  const nameEl = document.createElement("div");
+  nameEl.className = "item-name";
+  nameEl.title = nombre;
+  nameEl.textContent = nombre;
+
+  const gramsDiv = document.createElement("div");
+  gramsDiv.className = "item-grams";
+  const inp = document.createElement("input");
+  inp.type = "number";
+  inp.min = 0;
+  inp.value = 100;
+  const gLabel = document.createElement("span");
+  gLabel.textContent = "g";
+  gramsDiv.appendChild(inp);
+  gramsDiv.appendChild(gLabel);
+
+  const kcalEl = document.createElement("div");
+  kcalEl.className = "item-kcal";
+  kcalEl.textContent = kcal100 + " kcal";
+
+  const del = document.createElement("button");
+  del.className = "item-del";
+  del.textContent = "×";
+  del.title = "Eliminar";
+  del.addEventListener("click", () => {
+    row.remove();
+    delete selected[nombre];
+    tag.classList.remove("active");
+    recalcTotal();
+    checkEmpty();
+  });
+
+  inp.addEventListener("input", () => {
+    const g = parseFloat(inp.value) || 0;
+    const k = (kcal100 * g / 100);
+    kcalEl.textContent = k.toFixed(1) + " kcal";
+    recalcTotal();
+  });
+
+  row.appendChild(nameEl);
+  row.appendChild(gramsDiv);
+  row.appendChild(kcalEl);
+  row.appendChild(del);
+
+  document.getElementById("itemList").appendChild(row);
+  selected[nombre] = { row, input: inp, kcalCell: kcalEl };
+}
+
+function checkEmpty() {
+  const list = document.getElementById("itemList");
+  if (list.children.length === 0) {
+    const msg = document.createElement("div");
+    msg.className = "empty-msg";
+    msg.id = "emptyMsg";
+    msg.textContent = "Selecciona ingredientes →";
+    list.appendChild(msg);
+  }
+}
+
+function recalcTotal() {
+  let total = 0;
+  for (const { kcalCell } of Object.values(selected)) {
+    total += parseFloat(kcalCell.textContent) || 0;
+  }
+
+  const el = document.getElementById("totalVal");
+  el.textContent = total.toFixed(0) + " kcal";
+  el.className = "total-value";
+  if (total >= 600 && total < 700) el.classList.add("green");
+  else if (total >= 700) el.classList.add("red");
+
+  const count = Object.keys(selected).length;
+  document.getElementById("totalSub").textContent = `${count} ingrediente${count !== 1 ? "s" : ""}`;
+}
+</script>
+
+</body>
+</html>
